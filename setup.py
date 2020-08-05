@@ -4,7 +4,7 @@ setup(
     name='buschwerkzeug',
     #package_dir={'': 'src'},
     packages=find_packages(),
-    version='0.1.0',
+    version='0.1.1',
     description='Buschwerkzeug',
     author='Martin',
     license='',

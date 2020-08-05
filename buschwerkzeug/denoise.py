@@ -12,6 +12,7 @@ def denoise(wav, fs, template_len, silence_ratio = 0.05, max_iterations = 5, log
     energy_idx = pd.Series(wav).abs().rolling(template_len).sum()[::hop].sort_values().index.values - template_len
     n_noise = int(silence_ratio*len(energy_idx))
     #iterations = min(max_iterations, n_noise)
+    print('{} noise clips'.format(n_noise))
     noise_clips = [wav[energy_idx[i]:energy_idx[i]+template_len] for i in range(0,n_noise)]
     #for i in np.linspace(0, n_noise, iterations, dtype=int):
         #noise_clips.append(wav[energy_idx[i]:energy_idx[i]+template_len])

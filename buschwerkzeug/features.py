@@ -3,7 +3,7 @@ import skimage.filters as dummy
 import skimage
 from . import signal
 from librosa import feature
-from .vggish.vggish import VGGish
+from . import vggish.VGGish
 from functools import lru_cache
 from pathlib import PurePath
 
