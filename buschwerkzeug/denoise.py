@@ -3,19 +3,17 @@ import pandas as pd, numpy as np
 import noisereduce
 from . import signal
 
-def denoise(wav, fs, template_len, silence_ratio = 0.05, max_iterations = 5, logger=None):
+def denoise(wav, fs, template_len, silence_ratio = 0.05):
     #wav = signal.wiener(wav, mysize=32)
     #wav = signal.wiener(wav, mysize=128)
     #wav = signal.bandpass(wav, min_freq, max_freq, fs)
 
     hop = int(template_len/2)
     energy_idx = pd.Series(wav).abs().rolling(template_len).sum()[::hop].sort_values().index.values - template_len
-    n_noise = int(silence_ratio*len(energy_idx))
-    #iterations = min(max_iterations, n_noise)
-    print('{} noise clips'.format(n_noise))
-    noise_clips = [wav[energy_idx[i]:energy_idx[i]+template_len] for i in range(0,n_noise)]
-    #for i in np.linspace(0, n_noise, iterations, dtype=int):
-        #noise_clips.append(wav[energy_idx[i]:energy_idx[i]+template_len])
+    noise_clips = [wav[energy_idx[i]:energy_idx[i]+template_len] for i in range(int(silence_ratio*len(energy_idx)))]
+    print('Silence ratio {} --> {} noise clips'.format(silence_ratio, len(noise_clips)))
+    if not noise_clips:
+        return wav
     return noisereduce.reduce_noise(wav, noise_clips)
 
 @click.command()

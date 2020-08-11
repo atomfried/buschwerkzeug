@@ -3,7 +3,7 @@ import skimage.filters as dummy
 import skimage
 from . import signal
 from librosa import feature
-from .vggish import VGGish
+from .vggish.vggish import VGGish
 from functools import lru_cache
 from pathlib import PurePath
 
@@ -15,10 +15,10 @@ def all_equal(l):
     first = l[0]
     return all(x==first for x in l)
 
-def feature_builder(vggish_model, vggish_pca_params):
-    return lambda segments, wav_dir: features(segments, wav_dir, vggish_model, vggish_pca_params)
+def feature_builder(vggish_model, vggish_pca_params, normalize=False):
+    return lambda segments, wav_dir: features(segments, wav_dir, vggish_model, vggish_pca_params, normalize)
 
-def features(segments, wav_dir, vggish_model, vggish_pca_params):
+def features(segments, wav_dir, vggish_model, vggish_pca_params, normalize=False):
     shape_features = pd.DataFrame()
     rosa_features = pd.DataFrame()
     vggish_features = []
@@ -31,6 +31,12 @@ def features(segments, wav_dir, vggish_model, vggish_pca_params):
         fname = str(PurePath(wav_dir).joinpath(segment.fname))
         wav,fs = load_wav(fname)
         wav = wav[int(segment.start):int(segment.end)]
+        if normalize:
+            if normalize == 'rms':
+                wav = signal.rms_normalize(wav)
+            else:
+                assert('unknown normalize method')
+
         vggish_features.append(vggish.features(wav, fs))
 
         rosa_features = rosa_features.append({

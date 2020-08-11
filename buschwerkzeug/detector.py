@@ -72,7 +72,7 @@ class Detector(BaseEstimator):
         X = self.scaler.transform(features)
         candidates['prob'] = self.clf.predict_proba(X)[:,1]
         if True:
-            self.predict_candidates = [candidates[candidates.fname == fname] for fname in fnames]
+            self.predict_candidates = candidates #[candidates[candidates.fname == fname] for fname in fnames]
         candidates = candidates[candidates.prob > 0.5]
         candidates['selected'] = True
         for candidate in candidates.itertuples():

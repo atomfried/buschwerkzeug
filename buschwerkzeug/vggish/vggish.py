@@ -9,10 +9,10 @@ import numpy as np
 #os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 #import tensorflow.python.util.deprecation as deprecation
 #deprecation._PRINT_DEPRECATION_WARNINGS = False
-tf.get_logger().setLevel('WARNING')
 
 class VGGish:
     def __init__(self, fname_model, fname_pca_params):
+        tf.get_logger().setLevel('WARNING')
         self.graph = tf.Graph()
         with self.graph.as_default():
             self.sess = tf.Session() 

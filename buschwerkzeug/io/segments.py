@@ -31,18 +31,20 @@ def from_electro_gui(fname, fnames, fs):
     return df
 
 def to_electro_gui(out_file, segments, fs):
-    fnames = segments.fname.unique()
-    n = len(fnames)
+    #fnames = segments.fname.unique()
     segments.start += 1
-    files = np.core.records.fromarrays([fnames], names=['name'])
-    file_groups = segments.groupby('fname', as_index=False)
+    file_groups = segments.groupby('fname', as_index='False')
+    fnames = file_groups.first().index.values
+    #print(fnames)
+    n = len(fnames)
+    fnames = np.core.records.fromarrays([fnames], names=['name'])
     scipy.io.savemat(out_file, {
         'dbase': {
             'PathName': 'wav_dir',
             'Times': [0] * n,
             'FileLength': [0] * n,
-            'SoundFiles': files,
-            'ChannelFiles': [files] + 6 * [{}],
+            'SoundFiles': fnames,
+            'ChannelFiles': [fnames] + 6 * [{}],
             'SoundLoader': 'WaveRead',
             'ChannelLoader': ['WaveRead'] * 7,
             'Fs': fs,

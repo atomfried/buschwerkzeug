@@ -8,6 +8,9 @@ import math
 def rms(wav):
     return np.mean(np.power(wav,2))**(1/2.)
 
+def rms_normalize(x, target_rms=1):
+    return x*(len(x)*target_rms**2/sum(x**2))**(1/2.)
+
 def spectrogram(wav, fs, win_len=None, overlap = None, log = True):
     win_type = 'hann'
     if not win_len:

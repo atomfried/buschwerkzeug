@@ -17,11 +17,11 @@ def dummy_segmenter(segments):
         return segments[PurePath(fname).name]
     return f
 
-def spectral_entropy_segmenter(win_len, hold_len, min_len, threshold_method='otsu_exp', cutoff = 0):
+def spectral_entropy_segmenter(env_win_len, hold_len, min_len, threshold_method='otsu_exp', cutoff = 0):
     def f(fname):
         wav, fs = load_wav(fname)
-        env = 1 - signal.spectral_entropy(wav, fs, win_len)
-        return segments.segments(env, env_window_len, hold_len, min_len, threshold_method, cutoff, env_window_len)
+        env = 1 - signal.spectral_entropy(wav, fs, env_win_len)
+        return segments(env, hold_len, min_len, threshold_method, cutoff, env_win_len)
     return f
 
 def amplitude_segmenter(env_window_len, hold_len, min_len, threshold_method='otsu_exp', cutoff = 0):
@@ -164,7 +164,7 @@ def score(control, prediction, tolerance, missed_table = None):
                 #missed = missed.append(segment._asdict(), ignore_index=True)
                 pass
     #missed.to_csv('/tmp/missed.csv')
-    print(n_control, n_prediction, tp)
+    #print(n_control, n_prediction, tp)
     precision = 1 if not n_prediction else tp / n_prediction
     recall = 1 if not n_control else tp/n_control
     num = precision + recall
