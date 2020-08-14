@@ -25,7 +25,6 @@ class Detector(BaseEstimator):
         return Memory(cache_dir).cache(f)
 
     def fit(self, fnames, fsegments, wav_dir = ''):
-        print('fit...')
         candidates_features_builders = [ self.make_cached_f(self.segmenters[segmenter_id], segmenter_id, wav_dir) for segmenter_id in self.segmenters]
         candidates = pd.DataFrame()
         features = pd.DataFrame()
@@ -54,7 +53,6 @@ class Detector(BaseEstimator):
         return self
 
     def predict(self, fnames, wav_dir =''):
-        print('predict...')
         if len(self.clf.classes_) != 2:
             assert('classifier' == 'useless')
             #return [ pd.DataFrame(columns=('start', 'end')) ] * len(fnames)

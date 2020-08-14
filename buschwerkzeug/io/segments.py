@@ -4,7 +4,7 @@ import re
 import scipy
 from scipy import io as dummy
 
-def from_electro_gui(fname, fnames, fs):
+def from_electro_gui_linda(fname, fnames, fs):
     df = pd.read_excel(fname).rename(
         columns = {
             'Start (s)': 'start',
@@ -29,6 +29,18 @@ def from_electro_gui(fname, fnames, fs):
     df.drop(columns = ['f_idx', 'syllable_idx'], inplace = True)
 
     return df
+
+def from_electro_gui(fname):
+    db = scipy.io.loadmat(fname)['dbase']
+    fnames = [x[0][0][0] for x in db['SoundFiles'][0][0]]
+    segments = []
+    for i in range(len(fnames)):
+        segments.append(pd.DataFrame.from_records({
+            'start': [ x[0] for x in db['SegmentTimes'][0][0][0][i]],
+            'end': [ x[1] for x in db['SegmentTimes'][0][0][0][i]],
+            'label': [ x[0] if x else None for x in db['SegmentTitles'][0][0][0][i][0] ]
+            }))
+    return pd.Series(segments, fnames)  #concat(tmp, keys=fnames, names=['fname']).reset_index()
 
 def to_electro_gui(out_file, segments, fs):
     #fnames = segments.fname.unique()
