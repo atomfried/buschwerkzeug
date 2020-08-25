@@ -26,6 +26,7 @@ def spectrogram(wav, fs, win_len=None, overlap = None, log = True):
         S=np.log(S+1e-10) 
     return f, t, S
 
+
 ##def scale_spectrogram(S, log_scaling_factor=10, traget_len):
 #    S = Image.fromarray(S).resize([ int(np.log(S.shape[1])
 

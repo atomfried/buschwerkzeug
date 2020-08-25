@@ -7,16 +7,34 @@ from .vggish.vggish import VGGish
 from functools import lru_cache
 from pathlib import PurePath
 
+
 @lru_cache(maxsize=1)
 def load_wav(fname):
     return sf.read(fname)
+
+def spectrogram_builder(win_len, max_len):
+    def build_spectrograms(segments, wav_dir):
+        S = []
+        for segment in segments.itertuples():
+            wav, fs = load_wav(PurePath(wav_dir).joinpath(segment.fname))
+            wav = wav[segment.start:segment.end]
+            assert(len(wav) <= max_len)
+            pad_len = max_len - len(wav)
+            l_pad = pad_len // 2
+            r_pad = pad_len - l_pad
+            wav = np.pad(wav, ((l_pad,r_pad)))
+            f,t,_S = signal.spectrogram(wav, fs, win_len)
+            S.append(_S[:,:,np.newaxis])
+        return S
+    return build_spectrograms
+
 
 def all_equal(l):
     first = l[0]
     return all(x==first for x in l)
 
 def feature_builder(vggish_model, vggish_pca_params, normalize=False):
-    return lambda segments, wav_dir: features(segments, wav_dir, vggish_model, vggish_pca_params, normalize)
+    return lambda segments, wav_dir: features(segments, wav_dir, vggish_model, vggish_pca_params, normalize).values
 
 def features(segments, wav_dir, vggish_model, vggish_pca_params, normalize=False):
     shape_features = pd.DataFrame()
@@ -25,8 +43,10 @@ def features(segments, wav_dir, vggish_model, vggish_pca_params, normalize=False
 
     vggish = VGGish(vggish_model, vggish_pca_params)
 
+    i = 0
     for segment in segments.itertuples():
-        print('Building features ({}/{})'.format(segment.Index+1, len(segments)))
+        i+=1
+        print('Building features ({}/{})'.format(i, len(segments)))
 
         fname = str(PurePath(wav_dir).joinpath(segment.fname))
         wav,fs = load_wav(fname)

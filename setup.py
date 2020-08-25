@@ -8,6 +8,7 @@ setup(
     description='Buschwerkzeug',
     author='Martin',
     license='',
+    #dependency_links=[ 'https://github.com/atomfried/noisereduce.git#egg=noisereduce' ],
     install_requires=[ 
         'numba==0.48.0',
         'click',
@@ -16,12 +17,12 @@ setup(
         'pandas',
         'scikit-image',
         'xlrd',
-        'tensorflow==1.15.3',
+        #'tensorflow==1.15.3',
         'librosa',
         #'keras',
         'deco',
         'dill',
-        ],
-    dependency_links=[ 'https://github.com/atomfried/noisereduce.git' ]
+        'noisereduce @ git+https://github.com/atomfried/noisereduce.git'
+        ]
 )
 

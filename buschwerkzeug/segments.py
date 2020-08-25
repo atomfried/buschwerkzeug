@@ -9,6 +9,7 @@ from . import signal
 import soundfile as sf
 from functools import lru_cache
 from pathlib import PurePath
+import skimage
 
 load_wav = lru_cache(1)(sf.read)
 
@@ -31,6 +32,27 @@ def amplitude_segmenter(env_window_len, hold_len, min_len, threshold_method='ots
         return segments(env, hold_len, min_len, threshold_method, cutoff, env_window_len)
     return f
 
+def local_mean_segmenter(win_len, hop_len, mean_kernel_shape, mean_factor, opening_kernel_shape, min_len=0, max_len=float('inf')):
+    def f(fname):
+        wav, fs = load_wav(fname)
+        f,t,S = signal.spectrogram(wav, fs, win_len, hop_len)
+        S -= np.min(S)
+        S /= np.max(S)
+        S = skimage.img_as_ubyte(S)
+        mean_kernel = skimage.morphology.rectangle(*mean_kernel_shape)
+        opening_kernel = skimage.morphology.rectangle(*opening_kernel_shape)
+        M = skimage.filters.rank.mean(S, mean_kernel)
+        mask = (S > mean_factor*M)
+        mask = skimage.morphology.binary_opening(mask, opening_kernel)
+        mask = skimage.measure.label(mask)
+        props = skimage.measure.regionprops(mask*1)
+        r = pd.DataFrame({
+            'start': map(lambda p: p.bbox[1]*hop_len, props),
+            'end': map(lambda p: p.bbox[3]*hop_len, props),
+        })
+        l = r.end-r.start
+        return r[ (l>=min_len) & (l<=max_len) ]
+    return f
 
 def segments(env, hold_len, min_len, threshold_method='otsu_exp', cutoff_low = 0, descend_hold_len = 0, join_after_descend = False):
     cutoff_env = env[env >= cutoff_low]
@@ -152,7 +174,7 @@ def score(control, prediction, tolerance, missed_table = None):
     n_control = sum(map(len, control))
     n_prediction = sum(map(len, prediction))
     tp = 0
-    missed = pd.DataFrame()
+    missed = []
     for prediction_segments, control_segments in zip(prediction, control):
         for segment in control_segments.itertuples():
             if np.any( 
@@ -161,10 +183,9 @@ def score(control, prediction, tolerance, missed_table = None):
                     ):
                 tp += 1
             else:
-                #missed = missed.append(segment._asdict(), ignore_index=True)
-                pass
-    #missed.to_csv('/tmp/missed.csv')
-    #print(n_control, n_prediction, tp)
+                missed.append(segment._asdict())
+    if missed_table:
+        pd.DataFrame(missed).to_csv(missed_table)
     precision = 1 if not n_prediction else tp / n_prediction
     recall = 1 if not n_control else tp/n_control
     num = precision + recall

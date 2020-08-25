@@ -6,11 +6,12 @@ from joblib import Memory
 
 
 class Detector(BaseEstimator):
-    def __init__(self, segmenters, build_features, clf, tolerance, cache_dir = '/tmp/segment_feature_cache'):
+    def __init__(self, segmenters, build_features, clf, tolerance, cache_dir = '/tmp/segment_feature_cache', scale =True):
         self.segmenters = segmenters
         self.build_features = build_features
         self.clf = clf
         self.tolerance= tolerance
+        self.scale = scale
         self.scaler = StandardScaler()
         self.cache_dir=cache_dir
 
@@ -24,10 +25,10 @@ class Detector(BaseEstimator):
             return candidates, features
         return Memory(cache_dir).cache(f)
 
-    def fit(self, fnames, fsegments, wav_dir = ''):
+    def fit(self, fnames, fsegments, wav_dir = '', candidate_table = None):
         candidates_features_builders = [ self.make_cached_f(self.segmenters[segmenter_id], segmenter_id, wav_dir) for segmenter_id in self.segmenters]
         candidates = pd.DataFrame()
-        features = pd.DataFrame()
+        features = []
         missed = []
         i = 0
         for fname, segments in zip(fnames, fsegments):
@@ -35,21 +36,21 @@ class Detector(BaseEstimator):
             #print('fit -- {}/{}: {}'.format(i, len(fnames), fname))
             for build_candidates_features in candidates_features_builders:
                 _candidates, _features = build_candidates_features(fname)
-                _candidates['label'] = False
+                _candidates['label'] = 0.0
                 for segment in segments.itertuples():
                     _candidates.loc[
                         ((_candidates.start-segment.start).abs()<=self.tolerance) &
                         ((_candidates.end-segment.end).abs()<=self.tolerance),
-                        'label'] = True
+                        'label'] = 1.0
                 candidates = candidates.append(_candidates)
-                features = features.append(_features)
-        #if candidate_table:
-            #candidates.to_csv(candidate_table)
-        X = self.scaler.fit_transform(features)
+                features.extend(_features)
+        if candidate_table:
+            candidates.to_csv(candidate_table)
+        X = np.array(features)
+        if self.scale:
+            X = self.scaler.fit_transform(X)
         T = candidates.label
-        #print('Training clf...')
         self.clf.fit(X,T)
-        #print('done.')
         return self
 
     def predict(self, fnames, wav_dir =''):
@@ -58,7 +59,7 @@ class Detector(BaseEstimator):
             #return [ pd.DataFrame(columns=('start', 'end')) ] * len(fnames)
         candidates_features_builders = [ self.make_cached_f(self.segmenters[segmenter_id], segmenter_id, wav_dir) for segmenter_id in self.segmenters]
         candidates = pd.DataFrame()
-        features = pd.DataFrame()
+        features = []
         i = 0
         for fname in fnames:
             i += 1
@@ -66,9 +67,12 @@ class Detector(BaseEstimator):
             for build_candidates_features in candidates_features_builders:
                 _candidates, _features = build_candidates_features(fname)
                 candidates = candidates.append(_candidates)
-                features = features.append(_features)
-        X = self.scaler.transform(features)
+                features.extend(_features)
+        X = np.array(features)
+        if self.scale:
+            X = self.scaler.transform(features)
         candidates['prob'] = self.clf.predict_proba(X)[:,1]
+        #candidates['prob0'] = self.clf.predict_proba(X)[:,0]
         if True:
             self.predict_candidates = candidates #[candidates[candidates.fname == fname] for fname in fnames]
         candidates = candidates[candidates.prob > 0.5]
