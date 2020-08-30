@@ -40,7 +40,9 @@ def from_electro_gui(fname):
             'end': [ x[1] for x in db['SegmentTimes'][0][0][0][i]],
             'label': [ x[0] if x else None for x in db['SegmentTitles'][0][0][0][i][0] ]
             }))
-    return pd.Series(segments, fnames)  #concat(tmp, keys=fnames, names=['fname']).reset_index()
+    return pd.concat(segments, keys=fnames, names=['fname']).reset_index()
+    #return pd.Series(segments, fnames)  
+
 
 def to_electro_gui(out_file, segments, fs):
     #fnames = segments.fname.unique()
