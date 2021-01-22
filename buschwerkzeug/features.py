@@ -6,6 +6,25 @@ from librosa import feature
 from .vggish.vggish import VGGish
 from functools import lru_cache
 from pathlib import PurePath
+import sklearn
+
+class MultidimensionalStandardScaler(sklearn.preprocessing.StandardScaler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, *kwargs)
+
+    @staticmethod
+    def flatten(X):
+        return X.reshape(X.shape[0], -1)
+    
+    def fit(self, X):
+        return super().fit(self.flatten(X))
+
+    def partial_fit(self, X):
+        return super().partial_fit(self.flatten(X))
+
+    def transform(self, X):
+        shape = X.shape
+        return super().transform(self.flatten(X)).reshape(shape)
 
 
 @lru_cache(maxsize=1)

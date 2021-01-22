@@ -87,21 +87,42 @@ def to_electro_gui(out_file, segments, fs):
         }
     })
 
+import warnings
+def from_raven(fname, fs):
+    s = pd.read_csv(fname, sep='\t').sort_values('Begin Time (s)')
+    #fname_stem = PurePath(fname).name.split('.')[0] 
+    #w['fname'] = fname_stem + '.wav'
+    #w['whistle_idx'] = range(len(w))
+    if 'Annotation' not in s:
+        warnings.warn('{}: No "Annotation" column. Using column named "{}"'.format(fname, s.columns[7]))
+        s.rename(columns = { s.columns[7]: 'Annotation'}, inplace = True)
+    s=s[s.View == 'Waveform 1']
+    s.rename(columns={
+        'Begin Time (s)': 'start',
+        'End Time (s)': 'end',
+        'Low Freq (Hz)': 'freq_low',
+        'High Freq (Hz)': 'freq_high',
+        'Annotation': 'label'
+    }, inplace=True)
+    #whistles['whistle_bout_idx'] = whistles.Annotation.astype(str).map(lambda b: 1 if '.' in b else 0)
+    s.start = (s.start*fs).astype(int)
+    s.end = (s.end*fs).astype(int)
+    s.drop(columns = ['View', 'Channel', 'Selection'], inplace=True)
+    return s
 
-def to_raven(fname, segments, fs):
-    df = pd.DataFrame()
-    df['Begin Time'] = segments.start/fs
-    df['End Time'] = segments.end/fs
-    df['Low Frequency'] = 1
-    df['High Frequency'] = 20000
-    df.to_csv(fname, sep='\t', index = False)
-
-def to_audacity(out_dir, segments, fs):
-    df = pd.DataFrame()
+def to_raven(out_dir, segments, fs):
     for fname in segments.fname.unique():
         s = segments[segments.fname == fname]
-        df = pd.DataFrame({'start': s.start/fs, 'end': s.end/fs, 'label': s.label})
-        df.to_csv(PurePath(out_dir).joinpath(PurePath(fname).name + '.audacity.txt'), sep='\t', index = False, header = False)
+        df = pd.DataFrame()
+        df['Selection'] = range(1, len(s)+1)
+        df['View'] = 'Spectrogram 1'
+        df['Channel'] = 1
+        df['Begin Time (s)'] = (s.start/fs).values
+        df['End Time (s)'] = (s.end/fs).values
+        df['Low Frequency (Hz)'] = (s.freq_low).values
+        df['High Frequency (Hz)'] = (s.freq_high).values
+        df['Annotation'] = range(len(s))
+        df.to_csv(PurePath(out_dir).joinpath(PurePath(fname).stem+'.raven.txt'), sep='\t', index = False)
 
 def from_audacity(fname, fs):
     s = pd.read_csv(fname, sep='\t', names=('start', 'end', 'label'))
@@ -110,27 +131,41 @@ def from_audacity(fname, fs):
     s.end *= fs
     return s
 
-def to_avisoft(out_dir, segments, fs):
-    df = pd.DataFrame()
+def to_audacity(out_dir, segments, fs):
     for fname in segments.fname.unique():
         s = segments[segments.fname == fname]
         df = pd.DataFrame({'start': s.start/fs, 'end': s.end/fs, 'label': s.label})
-        df.to_csv(PurePath(out_dir).joinpath(PurePath(fname).name + '.avisoft.txt'), sep='\t', index = False, header = False, float_format='%.6f', line_terminator='\r\n')
+        df.to_csv(PurePath(out_dir).joinpath(PurePath(fname).stem + '.audacity.txt'), sep='\t', index = False, header = False)
 
-def from_raven(fname, fs):
-    s = pd.read_csv(fname, sep='\t').sort_values('Begin Time (s)')
-    #fname_stem = PurePath(fname).name.split('.')[0] 
-    #w['fname'] = fname_stem + '.wav'
-    #w['whistle_idx'] = range(len(w))
-    s=s[s.View == 'Waveform 1']
-    s.rename(columns={
-        'Begin Time (s)': 'start',
-        'End Time (s)': 'end',
-        'Low Freq (Hz)': 'freq_low',
-        'High Freq (Hz)': 'freq_high'
-    }, inplace=True)
-    #whistles['whistle_bout_idx'] = whistles.Annotation.astype(str).map(lambda b: 1 if '.' in b else 0)
-    s.start = (s.start*fs).astype(int)
-    s.end = (s.end*fs).astype(int)
-    s.drop(columns = ['View', 'Channel', 'Annotation', 'Selection'], inplace=True)
-    return s
+
+def to_avisoft(out_dir, segments, fs):
+    for fname in segments.fname.unique():
+        s = segments[segments.fname == fname]
+        df = pd.DataFrame({'start': s.start/fs, 'end': s.end/fs, 'label': s.label})
+        df.to_csv(PurePath(out_dir).joinpath(PurePath(fname).stem + '.avisoft.tsv'), sep='\t', index = False, header = False, float_format='%.6f', line_terminator='\r\n')
+
+def to_textgrid(out_dir, segments, fs):
+    for fname in segments.fname.unique():
+        _segments = segments[segments.fname == fname]
+        last = _segments.end.max()/fs
+        with open(PurePath(out_dir).joinpath(PurePath(fname).stem + '.TextGrid'), 'w') as f:
+            f.write((
+                'File type = "ooTextFile"\n'
+                'Object class = "TextGrid"\n\n'
+                'xmin = 0\n'
+                'xmax = {:.2f}\n'
+                'tiers? <exists>\n'
+                'size = 1\n'
+                'item []\n'
+                'item [1]:\n'
+                'class = "IntervalTier"\n'
+                'name = "tier name"\n'
+                'xmin = 0\n'
+                'xmax = {:.2f}\n'
+                'intervals: size = {}\n')
+            .format(last, last, len(_segments)))
+            i=0
+            for segment in _segments.itertuples():
+                i+=1
+                f.write('intervals [{}]:\nxmin = {:.2f}\nxmax = {:.2f}\ntext = "{}"\n'.format(i, segment.start/fs, segment.end/fs, segment.label))
+

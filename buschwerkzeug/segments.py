@@ -92,12 +92,12 @@ def detect(wav, hold_len, th):
     segments = []
     if len(idx):
         start,end = idx[0]
-    for i in range(1,len(idx)):
-        if idx[i][0] - end > hold_len:
-            segments.append((start, end))
-            start = idx[i][0]
-        end = idx[i][1]
-    segments.append((start, end))
+        for i in range(1,len(idx)):
+            if idx[i][0] - end > hold_len:
+                segments.append((start, end))
+                start = idx[i][0]
+            end = idx[i][1]
+        segments.append((start, end))
     return segments
 
 def descend(env, start, end, hold_len):
@@ -134,30 +134,33 @@ def join(segments, hold_len):
             i+=1
     return segments
 
+def consecutive(segments, max_gap):
+    has_next = (segments.end - segments.start.shift(1)) <= max_gap
+    has_previous = (segments.end.shift(-1) - segments.start) <= max_gap
+    return segments[(has_next | has_previous)]
 
 
 
-def match(segments1, segments2, tolerance_ratio):
-    segments1['match'] = 0
-    segments2['match'] = 0
+def match(segments1, segments2, tolerance):
+    segments1['match'] = False
+    segments2['match'] = False
 
-    i = 0
-    for segment in segments1.itertuples():
-        tolerance = tolerance_ratio * (segment.end-segment.start)
+    for i, segment1 in enumerate(segments1.itertuples()):
+        #tolerance = tolerance_ratio * (segment.end-segment.start)
         match = (
-            (segments2.fname==segment.fname) &
-            (np.abs(segments2.start-segment.start)<=tolerance) &
-            (np.abs(segments2.end-segment.end)<=tolerance)
+            (segments2.fname==segment1.fname) &
+            ((segments2.start-segment1.start).abs()<=tolerance) &
+            ((segments2.end-segment1.end).abs()<=tolerance)
         )
-        if match.sum() > 0:
-            segments1.loc[i,'match'] += 1
-            segments2.loc[match, 'match'] += 1
-        i += 1
+        if match.any():
+            segments1.loc[i,'match'] = True
+            segments2.loc[match, 'match'] = True
     return segments1.match.values, segments2.match.values
 
-def match_score(prediction, control, tolerance_ratio):
-    prediction, control = match(prediction, control, tolerance_ratio)
-    assert((prediction<2).all() and (control<2).all())
+def match_score(prediction, control):
+    #assert((prediction<2).all() and (control<2).all())
+    prediction = prediction == 1
+    control = control == 1
     if sum(prediction) is 0:
         precision = 1
     else:
@@ -192,6 +195,18 @@ def score(control, prediction, tolerance, missed_table = None):
     f1= 0 if not num else 2*precision*recall/num
     return f1, precision, recall
 
+
+def to_spectrogram_labels(segments, spec_len, stft_hop, sigma=None):
+    T = np.zeros(spec_len)
+    segments.start //= stft_hop
+    segments.end //= stft_hop
+    for segment in segments.itertuples():
+        T[segment.start:segment.end] = 1
+    if sigma:
+        T = scipy.ndimage.filters.gaussian_filter(T, sigma/stft_hop)
+    return T
+
+    
 
 
 
