@@ -135,8 +135,8 @@ def join(segments, hold_len):
     return segments
 
 def consecutive(segments, max_gap):
-    has_next = (segments.end - segments.start.shift(1)) <= max_gap
-    has_previous = (segments.end.shift(-1) - segments.start) <= max_gap
+    has_next = (segments.start.shift(-1) - segments.start) <= max_gap
+    has_previous = (segments.start - segments.end.shift(1)) <= max_gap
     return segments[(has_next | has_previous)]
 
 

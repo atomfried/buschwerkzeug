@@ -108,7 +108,7 @@ def from_raven(fname, fs):
     s.start = (s.start*fs).astype(int)
     s.end = (s.end*fs).astype(int)
     s.drop(columns = ['View', 'Channel', 'Selection'], inplace=True)
-    return s
+    return s.reset_index(drop=True)
 
 def to_raven(out_dir, segments, fs):
     for fname in segments.fname.unique():

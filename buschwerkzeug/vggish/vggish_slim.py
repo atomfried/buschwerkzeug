@@ -33,7 +33,7 @@ https://github.com/tensorflow/models/blob/master/research/slim/nets/vgg.py
 import tensorflow.compat.v1 as tf
 #import tensorflow as tf
 from . import vggish_params as params
-import tf_slim as slim
+#import tf_slim as slim
 #import slim
 
 #slim = tf.contrib.slim
