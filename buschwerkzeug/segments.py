@@ -146,16 +146,15 @@ def match(segments1, segments2, tolerance):
     segments2['match'] = False
 
     for i, segment1 in enumerate(segments1.itertuples()):
-        #tolerance = tolerance_ratio * (segment.end-segment.start)
         match = (
             (segments2.fname==segment1.fname) &
             ((segments2.start-segment1.start).abs()<=tolerance) &
             ((segments2.end-segment1.end).abs()<=tolerance)
         )
         if match.any():
-            segments1.loc[i,'match'] = True
+            segments1.loc[segments1.index[i], 'match'] = True
             segments2.loc[match, 'match'] = True
-    return segments1.match.values, segments2.match.values
+    return segments1.match.values.astype(bool), segments2.match.values.astype(bool)
 
 def match_score(prediction, control):
     #assert((prediction<2).all() and (control<2).all())
