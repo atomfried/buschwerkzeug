@@ -10,7 +10,7 @@ setup(
     license='',
     #dependency_links=[ 'https://github.com/atomfried/noisereduce.git#egg=noisereduce' ],
     install_requires=[ 
-        'numba==0.48.0',
+        #'numba==0.48.0',
         'click',
         'soundfile',
         'scipy',
